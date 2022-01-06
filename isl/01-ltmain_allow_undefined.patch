@@ -1,0 +1,25 @@
+# HG changeset patch
+# Parent 5df843ededc0e1212a0d060332574cffae27d420
+diff --git a/ltmain.sh b/ltmain.sh
+--- a/ltmain.sh
++++ b/ltmain.sh
+@@ -6495,18 +6495,11 @@ func_mode_link ()
+     *-*-cygwin* | *-*-mingw* | *-*-pw32* | *-*-os2* | *-cegcc*)
+       # It is impossible to link a dll without this setting, and
+       # we shouldn't force the makefile maintainer to figure out
+       # what system we are compiling for in order to pass an extra
+       # flag for every libtool invocation.
+-      # allow_undefined=no
+-
+-      # FIXME: Unfortunately, there are problems with the above when trying
+-      # to make a dll that has undefined symbols, in which case not
+-      # even a static library is built.  For now, we need to specify
+-      # -no-undefined on the libtool link line when we can be certain
+-      # that all symbols are satisfied, otherwise we get a static library.
+-      allow_undefined=yes
++      allow_undefined=no
+       ;;
+     *)
+       allow_undefined=yes
+       ;;
+     esac
