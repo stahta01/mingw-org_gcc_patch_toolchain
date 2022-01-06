@@ -1,0 +1,38 @@
+# HG changeset patch
+# Parent  75f82108f6d11edd2b8a05a2198253152ed26f85
+
+diff --git a/gcc/jit/jit-tempdir.c b/gcc/jit/jit-tempdir.c
+--- a/gcc/jit/jit-tempdir.c
++++ b/gcc/jit/jit-tempdir.c
+@@ -49,11 +49,30 @@ make_tempdir_path_template ()
+   gcc_assert (tmpdir_buf);
+ 
+   tmpdir_len = strlen (tmpdir_buf);
+   /* tmpdir_buf should now have a dir separator as the final byte.  */
+   gcc_assert (tmpdir_len > 0);
+-  gcc_assert (tmpdir_buf[tmpdir_len - 1] == DIR_SEPARATOR);
++# ifdef _WIN32
++  /* FIXME: the following assertion could be suicidal on Windows;
++   * there are *two* valid directory separator characters, but the
++   * assertion stipulates that only DIR_SEPARATOR, (with its unique
++   * value of '/'), is valid in this context.  Thus, we must ensure
++   * that the final byte is tested as being equal to DIR_SEPARATOR,
++   * in the case, (expected from choose_tmpdir), where it is the
++   * equally valid '\\', when the assertion is verified.
++   */
++  char tmpdir_buf_final = tmpdir_buf[tmpdir_len - 1];
++  if (tmpdir_buf_final == '/' || tmpdir_buf_final == '\\')
++    tmpdir_buf_final = DIR_SEPARATOR;
++# else
++  /* On any platform, other than Windows, we assume that there
++   * really is only one valid DIR_SEPARATOR character; thus, we
++   * may simply verify tmpdir_buf's final character, in place.
++   */
++# define tmpdir_buf_final  tmpdir_buf[tmpdir_len - 1]
++# endif
++  gcc_assert (tmpdir_buf_final == DIR_SEPARATOR);
+ 
+   file_template_buf = "libgccjit-XXXXXX";
+   file_template_len = strlen (file_template_buf);
+ 
+   result = XNEWVEC (char, tmpdir_len + file_template_len + 1);

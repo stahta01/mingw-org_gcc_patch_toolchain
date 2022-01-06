@@ -1,0 +1,98 @@
+# HG changeset patch
+# Parent  f28b9c08f356162a734bde3cf3fc20631885774c
+
+diff --git a/gcc/jit/Make-lang.in b/gcc/jit/Make-lang.in
+--- a/gcc/jit/Make-lang.in
++++ b/gcc/jit/Make-lang.in
+@@ -38,14 +38,16 @@
+ # Define the names for selecting jit in LANGUAGES.
+ # Note that it would be nice to move the dependency on g++
+ # into the jit rule, but that needs a little bit of work
+ # to do the right thing within all.cross.
+ 
+-LIBGCCJIT_LINKER_NAME = libgccjit.so
+ LIBGCCJIT_VERSION_NUM = 0
+ LIBGCCJIT_MINOR_NUM = 0
+ LIBGCCJIT_RELEASE_NUM = 1
++
++ifeq (,$(findstring mingw,$(target)))
++LIBGCCJIT_LINKER_NAME = libgccjit.so
+ LIBGCCJIT_SONAME = $(LIBGCCJIT_LINKER_NAME).$(LIBGCCJIT_VERSION_NUM)
+ LIBGCCJIT_FILENAME = \
+   $(LIBGCCJIT_SONAME).$(LIBGCCJIT_MINOR_NUM).$(LIBGCCJIT_RELEASE_NUM)
+ 
+ LIBGCCJIT_LINKER_NAME_SYMLINK = $(LIBGCCJIT_LINKER_NAME)
+@@ -62,14 +64,27 @@ LIBGCCJIT_VERSION_SCRIPT_OPTION = \
+ 
+ LIBGCCJIT_SONAME_OPTION = \
+ 	$(if $(LD_SONAME_OPTION), \
+ 	     -Wl$(COMMA)$(LD_SONAME_OPTION)$(COMMA)$(LIBGCCJIT_SONAME))
+ 
++LIBGCCJIT_LINK_OPTION = \
++	$(LIBGCCJIT_VERSION_SCRIPT_OPTION) \
++	$(LIBGCCJIT_SONAME_OPTION)
++
+ jit: $(LIBGCCJIT_FILENAME) \
+ 	$(LIBGCCJIT_SYMLINK) \
+ 	$(LIBGCCJIT_LINKER_NAME_SYMLINK) \
+ 	$(FULL_DRIVER_NAME)
++else
++LIBGCCJIT_FILENAME = libgccjit-$(LIBGCCJIT_VERSION_NUM).dll
++LIBGCCJIT_IMPLIB_NAME = libgccjit.dll.a
++
++LIBGCCJIT_LINK_OPTION = \
++	-Wl,--out-implib,$(LIBGCCJIT_IMPLIB_NAME)
++
++jit: $(LIBGCCJIT_FILENAME) $(FULL_DRIVER_NAME)
++endif
+ 
+ # Tell GNU make to ignore these if they exist.
+ .PHONY: jit
+ 
+ jit_OBJS = attribs.o \
+@@ -95,13 +110,11 @@ jit-warn = $(STRICT_WARN)
+ 	$(LIBDEPS) $(srcdir)/jit/libgccjit.map \
+ 	$(EXTRA_GCC_OBJS)
+ 	+$(LLINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ -shared \
+ 	     $(jit_OBJS) libbackend.a libcommon-target.a libcommon.a \
+ 	     $(CPPLIB) $(LIBDECNUMBER) $(EXTRA_GCC_LIBS) $(LIBS) $(BACKENDLIBS) \
+-	     $(EXTRA_GCC_OBJS) \
+-	     $(LIBGCCJIT_VERSION_SCRIPT_OPTION) \
+-	     $(LIBGCCJIT_SONAME_OPTION)
++	     $(EXTRA_GCC_OBJS) $(LIBGCCJIT_LINK_OPTION)
+ 
+ $(LIBGCCJIT_SONAME_SYMLINK): $(LIBGCCJIT_FILENAME)
+ 	ln -sf $(LIBGCCJIT_FILENAME) $(LIBGCCJIT_SONAME_SYMLINK)
+ 
+ $(LIBGCCJIT_LINKER_NAME_SYMLINK): $(LIBGCCJIT_SONAME_SYMLINK)
+@@ -275,21 +288,23 @@ selftest-jit:
+ 
+ #
+ # Install hooks:
+ jit.install-common: installdirs
+ 	$(INSTALL_PROGRAM) $(LIBGCCJIT_FILENAME) \
+-	  $(DESTDIR)/$(libdir)/$(LIBGCCJIT_FILENAME)
+-	ln -sf \
++	  $(DESTDIR)$($(if $(findstring mingw,$(target)),bin,lib)dir)
++	$(if $(LIBGCCJIT_IMPLIB_NAME),$(INSTALL_DATA) \
++	  $(LIBGCCJIT_IMPLIB_NAME) $(DESTDIR)$(libdir))
++	$(if $(findstring mingw,$(target)),,ln -sf \
+ 	  $(LIBGCCJIT_FILENAME) \
+-	  $(DESTDIR)/$(libdir)/$(LIBGCCJIT_SONAME_SYMLINK)
+-	ln -sf \
++	  $(DESTDIR)$(libdir)/$(LIBGCCJIT_SONAME_SYMLINK))
++	$(if $(findstring mingw,$(target)),,ln -sf \
+ 	  $(LIBGCCJIT_SONAME_SYMLINK)\
+-	  $(DESTDIR)/$(libdir)/$(LIBGCCJIT_LINKER_NAME_SYMLINK)
++	  $(DESTDIR)$(libdir)/$(LIBGCCJIT_LINKER_NAME_SYMLINK))
+ 	$(INSTALL_DATA) $(srcdir)/jit/libgccjit.h \
+-	  $(DESTDIR)/$(includedir)/libgccjit.h
++	  $(DESTDIR)$(includedir)
+ 	$(INSTALL_DATA) $(srcdir)/jit/libgccjit++.h \
+-	  $(DESTDIR)/$(includedir)/libgccjit++.h
++	  $(DESTDIR)$(includedir)
+ 
+ jit.install-man:
+ 
+ jit.install-plugin:
+ 

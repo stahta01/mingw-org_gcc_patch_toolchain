@@ -1,0 +1,19 @@
+# HG changeset patch
+# Parent  886538b5ffc84dcfeedca79d742056c71f778541
+
+diff --git a/gcc/Makefile.in b/gcc/Makefile.in
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -1682,11 +1682,11 @@ MOSTLYCLEANFILES = insn-flags.h insn-con
+  libcommon-target.a libcommon.a libgcc.mk perf.data
+ 
+ # This symlink makes the full installation name of the driver be available
+ # from within the *build* directory, for use when running the JIT library
+ # from there (e.g. when running its testsuite).
+-$(FULL_DRIVER_NAME): ./xgcc
++$(FULL_DRIVER_NAME): ./xgcc$(exeext)
+ 	rm -f $@
+ 	$(LN_S) $< $@
+ 
+ #
+ # Language makefile fragments.

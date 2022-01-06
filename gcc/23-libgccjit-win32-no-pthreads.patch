@@ -1,0 +1,93 @@
+# HG changeset patch
+# Parent  84a1335a7670eed764f96504035895323d3f44fa
+
+diff --git a/gcc/jit/jit-playback.c b/gcc/jit/jit-playback.c
+--- a/gcc/jit/jit-playback.c
++++ b/gcc/jit/jit-playback.c
+@@ -38,12 +38,10 @@ along with GCC; see the file COPYING3.  
+ #include "fold-const.h"
+ #include "opt-suggestions.h"
+ #include "gcc.h"
+ #include "diagnostic.h"
+ 
+-#include <pthread.h>
+-
+ #include "jit-playback.h"
+ #include "jit-result.h"
+ #include "jit-builtins.h"
+ #include "jit-tempdir.h"
+ 
+@@ -2114,22 +2112,59 @@ playback::compile_to_file::copy_file (co
+ /* Helper functions for gcc::jit::playback::context::compile.  */
+ 
+ /* This mutex guards gcc::jit::recording::context::compile, so that only
+    one thread can be accessing the bulk of GCC's state at once.  */
+ 
++#ifdef _WIN32
++/* Nominally, this would be implemented as a POSIX threads mutex,
++ * but, on MS-Windows hosts, POSIX threads are not natively supported;
++ * use a native CRITICAL_SECTION, in preference to a pthread mutex, to
++ * guard the gccjit playback context.
++ */
++#include <winbase.h>
++
++/* A CRITICAL_SECTION must be initialized, before we can use it;
++ * this requires a kernel32.dll function call, so use a C++ class
++ * to emulate the mutex, so that we may use the class constructor
++ * to perform that initialization call.
++ */
++static class jit_mutex_initializer
++{
++  private:
++    CRITICAL_SECTION mutex;
++
++  public:
++    jit_mutex_initializer(){ InitializeCriticalSection (&mutex); }
++    void lock(){ EnterCriticalSection (&mutex); }
++    void unlock(){ LeaveCriticalSection (&mutex); }
++} jit_mutex;
++
++#define JIT_CONTEXT_ACQUIRE_LOCK(mutex)  mutex.lock()
++#define JIT_CONTEXT_RELEASE_LOCK(mutex)  mutex.unlock()
++
++#else	/* !_WIN32 */
++/* On any host, other than MS-Windows, use a pthread mutex.
++ */
++#include <pthread.h>
++
+ static pthread_mutex_t jit_mutex = PTHREAD_MUTEX_INITIALIZER;
+ 
++#define JIT_CONTEXT_ACQUIRE_LOCK(mutex)  pthread_mutex_lock(&mutex)
++#define JIT_CONTEXT_RELEASE_LOCK(mutex)  pthread_mutex_unlock(&mutex)
++
++#endif	/* !_WIN32 */
++
+ /* Acquire jit_mutex and set "this" as the active playback ctxt.  */
+ 
+ void
+ playback::context::acquire_mutex ()
+ {
+   auto_timevar tv (get_timer (), TV_JIT_ACQUIRING_MUTEX);
+ 
+   /* Acquire the big GCC mutex. */
+   JIT_LOG_SCOPE (get_logger ());
+-  pthread_mutex_lock (&jit_mutex);
++  JIT_CONTEXT_ACQUIRE_LOCK (jit_mutex);
+   gcc_assert (active_playback_ctxt == NULL);
+   active_playback_ctxt = this;
+ }
+ 
+ /* Release jit_mutex and clear the active playback ctxt.  */
+@@ -2139,11 +2174,11 @@ playback::context::release_mutex ()
+ {
+   /* Release the big GCC mutex. */
+   JIT_LOG_SCOPE (get_logger ());
+   gcc_assert (active_playback_ctxt == this);
+   active_playback_ctxt = NULL;
+-  pthread_mutex_unlock (&jit_mutex);
++  JIT_CONTEXT_RELEASE_LOCK (jit_mutex);
+ }
+ 
+ /* Callback used by gcc::jit::playback::context::make_fake_args when
+    invoking driver_get_configure_time_options.
+    Populate a vec <char * > with the configure-time options.  */

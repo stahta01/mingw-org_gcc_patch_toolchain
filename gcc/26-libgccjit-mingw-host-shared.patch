@@ -1,0 +1,69 @@
+# HG changeset patch
+# Parent  8d6cbb00c39476fc3e70eb34e6f4f510c8c0be49
+
+diff --git a/configure b/configure
+--- a/configure
++++ b/configure
+@@ -6378,11 +6378,15 @@ if test -d ${srcdir}/gcc; then
+             # Silently disable.
+             add_this_lang=unsupported
+             ;;
+         esac
+ 
+-        # Disable jit if -enable-host-shared not specified
++        # Disable jit if -enable-host-shared not specified,
++        # unless building for a MS-Windows host, using MinGW,
++        # in which case all code is position-independent anyway,
++        # and thus, this requirement doesn't apply.
++        case "${target}" in *mingw*) ;; *)
+         case ${add_this_lang}:${language}:${host_shared} in
+           yes:jit:no)
+ 	    # PR jit/64780: explicitly specify --enable-host-shared
+ 	    as_fn_error $? "
+ Enabling language \"jit\" requires --enable-host-shared.
+@@ -6402,11 +6406,11 @@ directories, to avoid imposing the perfo
+             ;;
+           *:jit:no)
+             # Silently disable.
+             add_this_lang=unsupported
+             ;;
+-	esac
++	esac ;; esac
+ 
+         # Disable a language that is unsupported by the target.
+ 	case "${add_this_lang}: $unsupported_languages " in
+ 	  no:*) ;;
+ 	  unsupported:*) ;;
+diff --git a/configure.ac b/configure.ac
+--- a/configure.ac
++++ b/configure.ac
+@@ -1979,11 +1979,15 @@ if test -d ${srcdir}/gcc; then
+             # Silently disable.
+             add_this_lang=unsupported
+             ;;
+         esac
+ 
+-        # Disable jit if -enable-host-shared not specified
++        # Disable jit if -enable-host-shared not specified,
++        # unless building for a MS-Windows host, using MinGW,
++        # in which case all code is position-independent anyway,
++        # and thus, this requirement doesn't apply.
++        case "${target}" in *mingw*) ;; *)
+         case ${add_this_lang}:${language}:${host_shared} in
+           yes:jit:no)
+ 	    # PR jit/64780: explicitly specify --enable-host-shared
+ 	    AC_MSG_ERROR([
+ Enabling language "jit" requires --enable-host-shared.
+@@ -2002,11 +2006,11 @@ directories, to avoid imposing the perfo
+             ;;
+           *:jit:no)
+             # Silently disable.
+             add_this_lang=unsupported
+             ;;
+-	esac
++	esac ;; esac
+ 
+         # Disable a language that is unsupported by the target.
+ 	case "${add_this_lang}: $unsupported_languages " in
+ 	  no:*) ;;
+ 	  unsupported:*) ;;

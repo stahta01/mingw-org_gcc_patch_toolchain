@@ -1,0 +1,20 @@
+# HG changeset patch
+# User Eli Zaretskii <eliz@gnu.org>
+# Parent  638080f5a050682bb18d0b0a3025087af6293c1b
+
+diff --git a/gcc/jit/jit-recording.c b/gcc/jit/jit-recording.c
+--- a/gcc/jit/jit-recording.c
++++ b/gcc/jit/jit-recording.c
+@@ -43,11 +43,11 @@ dump::dump (recording::context &ctxt,
+   m_filename (filename),
+   m_update_locations (update_locations),
+   m_line (0),
+   m_column (0)
+ {
+-  m_file = fopen (filename, "w");
++  m_file = fopen (filename, "wb");
+   if (!m_file)
+     ctxt.add_error (NULL,
+ 		    "error opening dump file %s for writing: %s",
+ 		    filename,
+ 		    xstrerror (errno));

@@ -1,0 +1,33 @@
+# HG changeset patch
+# Parent  eef315b04b08e8737967c307cfb9271a8ff8b8d1
+
+diff --git a/gcc/jit/jit-playback.c b/gcc/jit/jit-playback.c
+--- a/gcc/jit/jit-playback.c
++++ b/gcc/jit/jit-playback.c
+@@ -2091,17 +2091,26 @@ playback::compile_to_file::copy_file (co
+   if (get_logger ())
+     get_logger ()->log ("total bytes copied: %ld", total_sz_out);
+ 
+   /* Set the permissions of the copy to those of the original file,
+      in particular the "executable" bits.  */
++# ifdef _WIN32
++  fclose (f_out);
++  if (chmod (dst_path, stat_buf.st_mode) == -1)
++    add_error (NULL,
++	       "error setting mode of %s: %s",
++	       dst_path,
++	       xstrerror (errno));
++# else
+   if (fchmod (fileno (f_out), stat_buf.st_mode) == -1)
+     add_error (NULL,
+ 	       "error setting mode of %s: %s",
+ 	       dst_path,
+ 	       xstrerror (errno));
+ 
+   fclose (f_out);
++# endif
+ }
+ 
+ /* Helper functions for gcc::jit::playback::context::compile.  */
+ 
+ /* This mutex guards gcc::jit::recording::context::compile, so that only

@@ -1,0 +1,21 @@
+# HG changeset patch
+# Parent  24aaff63ad3451b0766f8ddd205fdc085d682759
+
+diff --git a/gcc/jit/jit-common.h b/gcc/jit/jit-common.h
+--- a/gcc/jit/jit-common.h
++++ b/gcc/jit/jit-common.h
+@@ -26,10 +26,14 @@ along with GCC; see the file COPYING3.  
+ #include "vec.h"
+ #include "tree.h"
+ #include "inchash.h"
+ #include "tree-iterator.h"
+ 
++#ifdef _WIN32
++# include <dlfcn.h>
++#endif
++
+ #ifdef GCC_VERSION
+ #if GCC_VERSION >= 4001
+ #define GNU_PRINTF(M, N) __attribute__ ((format (gnu_printf, (M), (N))))
+ #else
+ #define GNU_PRINTF(M, N)
