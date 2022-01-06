@@ -1,0 +1,22 @@
+# HG changeset patch
+# Parent 45d65ed3c4b9646485e5d6555cd17535622e82fe
+Provide fall-back for missing ENOTSUP.
+
+diff --git a/libiberty/simple-object-elf.c b/libiberty/simple-object-elf.c
+--- a/libiberty/simple-object-elf.c
++++ b/libiberty/simple-object-elf.c
+@@ -40,10 +40,14 @@ Boston, MA 02110-1301, USA.  */
+ #include <inttypes.h>
+ #endif
+ 
+ #include "simple-object-common.h"
+ 
++#ifndef ENOTSUP  /* MS-Windows may not define this! */
++#define ENOTSUP  ENOSYS
++#endif
++
+ /* ELF structures and constants.  */
+ 
+ /* 32-bit ELF file header.  */
+ 
+ typedef struct {
