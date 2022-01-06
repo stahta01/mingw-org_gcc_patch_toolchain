@@ -1,0 +1,60 @@
+# HG changeset patch
+# Parent 02dc804e318dfb8dc056d5b64da57560042bbd05
+diff --git a/gmp-h.in b/gmp-h.in
+--- a/gmp-h.in
++++ b/gmp-h.in
+@@ -56,12 +56,26 @@ see https://www.gnu.org/licenses/.  */
+ #include <limits.h>
+ 
+ /* Instantiated by configure. */
+ #if ! defined (__GMP_WITHIN_CONFIGURE)
+ @DEFN_LONG_LONG_LIMB@
++/* __GMP_LIBGMP_DLL controls DECLSPEC decoration of GMP declarations,
++ * when building for MS-Windows; it is set to one when LIBGMP has been
++ * built to support dynamic linking, or to zero when support only for
++ * static linking has been installed.
++ *
++ * FIXME: this will interfere with MinGW's link-time selection between
++ * dynamic and static linking, in a hybrid installation, in which both
++ * libgmp.dll.a and libgmp.a are available, and thus, a choice between
++ * either linking method is supported; we may address this later, by
++ * delegating the choice to MinGW's own decoration protocol, but we
++ * also accomodate overriding of this hard-coded configuration.
++ */
++#if ! defined (__GMP_LIBGMP_DLL)
+ #define __GMP_LIBGMP_DLL  @LIBGMP_DLL@
+ #endif
++#endif
+ 
+ 
+ /* __GMP_DECLSPEC supports Windows DLL versions of libgmp, and is empty in
+    all other circumstances.
+ 
+@@ -98,12 +112,26 @@ see https://www.gnu.org/licenses/.  */
+    In Borland C _export still exists, but needs to go after the type, like
+    "void _export foo();".  Would have to change the __GMP_DECLSPEC syntax to
+    make use of that.  Probably more trouble than it's worth.  */
+ 
+ #if defined (__GNUC__)
++#if defined (_CRTIMP)
++/* The compiler (e.g. MinGW) defines its own import decoration protocol;
++ * prefer to delegate decoration to that, so addressing the MinGW linking
++ * choice FIXME described above.
++ */
++#define __GMP_DECLSPEC_IMPORT  _CRTIMP
++#else
++/* We don't know how to delegate import decoration, so simply assign a
++ * known standard declaration.
++ */
++#define __GMP_DECLSPEC_IMPORT  __declspec(__dllimport__)
++#endif
++/* Regardless of how we declare imports, we always use a standard form
++ * for exports, when building LIBGMP itself, as a DLL.
++ */
+ #define __GMP_DECLSPEC_EXPORT  __declspec(__dllexport__)
+-#define __GMP_DECLSPEC_IMPORT  __declspec(__dllimport__)
+ #endif
+ #if defined (_MSC_VER) || defined (__BORLANDC__)
+ #define __GMP_DECLSPEC_EXPORT  __declspec(dllexport)
+ #define __GMP_DECLSPEC_IMPORT  __declspec(dllimport)
+ #endif
